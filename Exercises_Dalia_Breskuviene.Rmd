@@ -1,0 +1,149 @@
+---
+title: "Exercises"
+author: "Dalia Breskuviene"
+date: "April 11, 2022"
+output: pdf_document
+---
+
+# Exercise 15.6.4
+
+```{r, echo=FALSE}
+knitr::include_graphics("images/ex1.png")
+```
+
+
+Using the data in the exercise I want to investigate hypothesis if death sentence and victims skin color are related:
+
+H0: Death Sentence and Victims Colour are indeperdent 
+
+H1: Death Sentence and Victims Colour are deperdent. Null hypothesis is rejected
+
+To test the hyposesis we need to calculate p-value, which is a measure of the evidence against H0. The smaller the p-value, the stronger the evidence against H0.
+
+There are many ways to test hypothesis above. I will try several of them. Firstly, I will do Pearsons X2 test to check independence between the features
+
+
+
+```{r,echo=FALSE, include=FALSE}
+x  = c(14,62,641,594)
+x  = matrix(x,2,2)
+n  = sum(x)
+mr = apply(x,1,sum)
+mc = apply(x,2,sum)
+message('Death Sentencing and Race table from the exercise:')
+print(x)
+```
+```{r, echo=FALSE, include=FALSE}
+### expected counts
+E  = matrix(c(mr[1]*mc[1],mr[2]*mc[1],mr[1]*mc[2],mr[2]*mc[2]),2,2)/n
+message('Expected counts')
+print(E)
+```
+
+```{r, echo=FALSE}
+### chi^2 test
+U <- sum((x-E)^2/E)
+p <- round(1-pchisq(U,1),9)
+message('U statistic: ', U)
+
+message('p-value ', p)
+```
+```{r,echo=FALSE}
+prob <- 0.95
+# interpret p-value
+alpha = 1.0 - prob
+
+
+if(p <= alpha)
+{
+    print("Dependent: Null hypothesis is rejected")  # Statement
+}else{
+    print("Independent (fail to reject H0")
+}
+
+
+```
+
+Other way is to check the likelihood ratio test statistic:
+```{r, echo=FALSE}
+lrt <- 2*(x[1,1]*log( (x[1,1]*n)/(mr[1]*mc[1]) ) +
+       x[1,2]*log( (x[1,2]*n)/(mr[1]*mc[2]) ) +
+       x[2,1]*log( (x[2,1]*n)/(mr[2]*mc[1]) ) +
+       x[2,2]*log( (x[2,2]*n)/(mr[2]*mc[2]) )  )
+p2<-1-pchisq(lrt,1)
+message('LRT statistics: ', lrt)
+message('p-value: ', p2)
+```
+
+
+```{r, echo=FALSE}
+prob <- 0.95
+# interpret p-value
+alpha = 1.0 - prob
+
+
+if(p2 <= alpha)
+{
+    print("Dependent: Null hypothesis is rejected")  # Statement
+}else{
+    print("Independent (fail to reject H0")
+}
+```
+
+Hence both Pearson's statistic and LRT leads to the refutal of unassosiation of the victim's skin color and death sentence.
+
+It can be concluded that Victims' Colour of the skin is associated with Death Sentence (reject H0). However, I would like to know how strong or weak dependency is. To investigate this odds ration needs to be calculated. 
+
+```{r, echo=FALSE}
+odds_ratio = (x[1,1]*x[2,2])/(x[1,2]*x[2,1])
+message('odds ratio: ' , odds_ratio)
+```
+In cases where victim was white skined the desicion of Death Sentense where 5 times as likely
+
+```{r, echo=FALSE}
+log_odds_ratio = log(odds_ratio)
+message('Log odds ratio: ', log_odds_ratio)
+sqr_err = sqrt(sum(1/x))
+message('standard error of estimation of log-odds ratio is: ', sqr_err)
+
+ci_log_odds_ratio = c(log_odds_ratio-2*sqr_err,log_odds_ratio+2*sqr_err)
+
+
+### confidence interval on odds scale
+ci_odds_ratio = exp(ci_log_odds_ratio)
+message('Odds ratio confidence interval: ', ci_odds_ratio)
+
+message('with a certainty of 95%, 
+death sentence is sentenced from ' ,round(1/ci_odds_ratio)[2], ' to ', round(1/ci_odds_ratio)[1], 
+' 
+times more often if the victims skin color was white.')
+
+```
+This means that, with a certainty of 95%, death sentence is sentenced from 2.5 to 9 times more often if the victims' skin color was white.
+We can see that the skin colour of the victim is assotiated to the death sentence, however we can't state that it is a cause of the decision because of the lack of information. 
+There can be other factors contributing to both - maybe the death sentence is given to people killing rich victims. Being white and and rich might be more likely than being black and rich, hence the weight is more on the white victim side.
+
+# Exercise 15.6.5
+```{r Only output , echo=FALSE}
+montana_table <- read.csv("Data/Montana.csv",
+                           stringsAsFactors = FALSE)
+
+age <- as.numeric(montana_table$AGE)
+fin <- as.numeric(montana_table$FIN)
+```
+```{r}
+install.packages("rpivotTable")
+```
+
+```{r}
+library(pivottabler)
+pt <- PivotTable$new()
+pt$addData(montana_table)
+pt$addColumnDataGroups("AGE")
+pt$addRowDataGroups("FIN")
+pt$defineCalculation(calculationName="TotalTrains", summariseExpression="n()")
+pt$evaluatePivot()
+pt
+```
+
+
