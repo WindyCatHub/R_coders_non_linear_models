@@ -12,7 +12,6 @@ always_allow_html: yes
 knitr::include_graphics("images/ex1.png")
 ```
 
-
 Using the data in the exercise I want to investigate hypothesis if death sentence and victims skin color are related:
 
 **H0:** Death Sentence and Victims Colour are indeperdent 
@@ -26,15 +25,18 @@ There are many ways to test hypothesis above. I will try several of them. Firstl
 
 
 ```{r,echo=FALSE, include=FALSE}
+
 x  = c(14,62,641,594)
 x  = matrix(x,2,2)
 n  = sum(x)
 mr = apply(x,1,sum)
 mc = apply(x,2,sum)
+
 message('Death Sentencing and Race table from the exercise:')
 print(x)
 ```
 ```{r, echo=FALSE, include=FALSE}
+
 ### expected counts
 E  = matrix(c(mr[1]*mc[1],mr[2]*mc[1],mr[1]*mc[2],mr[2]*mc[2]),2,2)/n
 message('Expected counts')
@@ -44,6 +46,7 @@ print(E)
 ```{r, echo=FALSE}
 ### chi^2 test
 E  = matrix(c(mr[1]*mc[1],mr[2]*mc[1],mr[1]*mc[2],mr[2]*mc[2]),2,2)/n
+
 U <- sum((x-E)^2/E)
 p <- round(1-pchisq(U,1),9)
 message('U statistic: ', U)
@@ -54,7 +57,6 @@ message('p-value ', p)
 prob <- 0.95
 # interpret p-value
 alpha = 1.0 - prob
-
 
 if(p <= alpha)
 {
@@ -355,5 +357,3 @@ plot(density(x))
 ```{r}
 plot(density(y))
 ```
-
-
