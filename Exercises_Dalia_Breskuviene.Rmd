@@ -3,6 +3,7 @@ title: "Exercises"
 author: "Dalia Breskuviene"
 date: "April 11, 2022"
 output: pdf_document
+always_allow_html: yes
 ---
 
 # Exercise 15.6.4
@@ -14,13 +15,13 @@ knitr::include_graphics("images/ex1.png")
 
 Using the data in the exercise I want to investigate hypothesis if death sentence and victims skin color are related:
 
-H0: Death Sentence and Victims Colour are indeperdent 
+**H0:** Death Sentence and Victims Colour are indeperdent 
 
-H1: Death Sentence and Victims Colour are deperdent. Null hypothesis is rejected
+**H1:** Death Sentence and Victims Colour are deperdent. Null hypothesis is rejected
 
-To test the hyposesis we need to calculate p-value, which is a measure of the evidence against H0. The smaller the p-value, the stronger the evidence against H0.
+To test the hyposesis I will calculate p-value, which is a measure of the evidence against H0. The smaller the p-value, the stronger the evidence against H0.
 
-There are many ways to test hypothesis above. I will try several of them. Firstly, I will do Pearsons X2 test to check independence between the features
+There are many ways to test hypothesis above. I will try several of them. Firstly, I will do Pearsons *X*^2^ test to check independence between the features:
 
 
 
@@ -42,6 +43,7 @@ print(E)
 
 ```{r, echo=FALSE}
 ### chi^2 test
+E  = matrix(c(mr[1]*mc[1],mr[2]*mc[1],mr[1]*mc[2],mr[2]*mc[2]),2,2)/n
 U <- sum((x-E)^2/E)
 p <- round(1-pchisq(U,1),9)
 message('U statistic: ', U)
@@ -64,7 +66,7 @@ if(p <= alpha)
 
 ```
 
-Other way is to check the likelihood ratio test statistic:
+Other way is to check independence is the likelihood ratio test(LRT):
 ```{r, echo=FALSE}
 lrt <- 2*(x[1,1]*log( (x[1,1]*n)/(mr[1]*mc[1]) ) +
        x[1,2]*log( (x[1,2]*n)/(mr[1]*mc[2]) ) +
@@ -90,21 +92,21 @@ if(p2 <= alpha)
 }
 ```
 
-Hence both Pearson's statistic and LRT leads to the refutal of unassosiation of the victim's skin color and death sentence.
+Hence both Pearson's statistic and LRT leads to the refusal of unassosiation of the victim's skin color and death sentence.
 
-It can be concluded that Victims' Colour of the skin is associated with Death Sentence (reject H0). However, I would like to know how strong or weak dependency is. To investigate this odds ration needs to be calculated. 
+It can be concluded that Victims' Colour of the skin is associated with Death Sentence (reject H0). However, I would like to know how strong or weak dependency is. To investigate this - odds ratio needs to be calculated. 
 
 ```{r, echo=FALSE}
 odds_ratio = (x[1,1]*x[2,2])/(x[1,2]*x[2,1])
 message('odds ratio: ' , odds_ratio)
 ```
-In cases where victim was white skined the desicion of Death Sentense where 5 times as likely
+In cases where victim was white skined the desicion of Death Sentense where 5 times as likely.
 
 ```{r, echo=FALSE}
 log_odds_ratio = log(odds_ratio)
-message('Log odds ratio: ', log_odds_ratio)
+#message('Log odds ratio: ', log_odds_ratio)
 sqr_err = sqrt(sum(1/x))
-message('standard error of estimation of log-odds ratio is: ', sqr_err)
+#message('standard error of estimation of log-odds ratio is: ', sqr_err)
 
 ci_log_odds_ratio = c(log_odds_ratio-2*sqr_err,log_odds_ratio+2*sqr_err)
 
@@ -113,37 +115,245 @@ ci_log_odds_ratio = c(log_odds_ratio-2*sqr_err,log_odds_ratio+2*sqr_err)
 ci_odds_ratio = exp(ci_log_odds_ratio)
 message('Odds ratio confidence interval: ', ci_odds_ratio)
 
-message('with a certainty of 95%, 
-death sentence is sentenced from ' ,round(1/ci_odds_ratio)[2], ' to ', round(1/ci_odds_ratio)[1], 
-' 
-times more often if the victims skin color was white.')
+message('with a certainty of 95%, death sentence is sentenced 
+        from ' ,round(1/ci_odds_ratio)[2], ' to ', round(1/ci_odds_ratio)[1], ' times more often if the victims skin color was white.')
 
 ```
-This means that, with a certainty of 95%, death sentence is sentenced from 2.5 to 9 times more often if the victims' skin color was white.
+This means that, with a certainty of 95%, death sentence is sentenced from 3 to 9 times more often if the victims' skin color was white.
 We can see that the skin colour of the victim is assotiated to the death sentence, however we can't state that it is a cause of the decision because of the lack of information. 
 There can be other factors contributing to both - maybe the death sentence is given to people killing rich victims. Being white and and rich might be more likely than being black and rich, hence the weight is more on the white victim side.
 
-# Exercise 15.6.5
-```{r Only output , echo=FALSE}
+# Exercise 15.6.5:
+
+## Analyze the data on the variables Age and Financial Status
+```{r Only output, include=FALSE}
 montana_table <- read.csv("Data/Montana.csv",
                            stringsAsFactors = FALSE)
 
-age <- as.numeric(montana_table$AGE)
-fin <- as.numeric(montana_table$FIN)
+#age <- as.numeric(montana_table$AGE)
+#fin <- as.numeric(montana_table$FIN)
 ```
-```{r}
-install.packages("rpivotTable")
-```
+```{r include=FALSE}
+#install.packages("plyr", dependencies=T)
+require(plyr)
+montana_table$newage <- mapvalues(montana_table$AGE, 
+          from=c("1","2","3"), 
+          to=c("under 35","35-54","55 and over"))
 
-```{r}
+
+
+montana_table$newfin <- mapvalues(montana_table$FIN, 
+          from=c("1","2","3"), 
+          to=c("worse than a year ago","same as a year ago","better than a year agor"))
+```
+```{r include=FALSE}
+montana <- montana_table[montana_table$newage!='*' & montana_table$newfin!='*',]
+```
+_Two rows with unknown age or financial status were removed from dataset._
+
+
+```{r include=FALSE}
 library(pivottabler)
 pt <- PivotTable$new()
-pt$addData(montana_table)
-pt$addColumnDataGroups("AGE")
-pt$addRowDataGroups("FIN")
-pt$defineCalculation(calculationName="TotalTrains", summariseExpression="n()")
+pt$addData(montana)
+pt$addColumnDataGroups("newage", addTotal=FALSE)
+pt$addRowDataGroups("newfin",  addTotal=FALSE)
+pt$defineCalculation(calculationName="Total", summariseExpression="n()")
 pt$evaluatePivot()
+pt$renderPivot()
 pt
+```
+
+
+```{r echo=FALSE}
+df <-pt$asDataFrame()
+df
+```
+
+I would like to test a hypothesi:
+
+**H0:** Age and Financial status are independent variables
+
+**H1:** Age and Financial status are dependent variables
+
+```{r include=FALSE}
+#x  = c(90,165,84,307)
+#x  = matrix(x,2,2)
+x = as.matrix(df)
+print(x)
+n  = sum(x)
+print(n)
+mr = apply(x,1,sum)
+mc = apply(x,2,sum)
+print(mr)
+print(mc)
+
+```
+
+```{r echo=FALSE}
+lrt <- 2*(
+       x[1,1]*log( (x[1,1]*n)/(mr[1]*mc[1]) ) +
+       x[1,2]*log( (x[1,2]*n)/(mr[1]*mc[2]) ) +
+       x[1,3]*log( (x[1,3]*n)/(mr[1]*mc[3]) ) +
+       x[2,1]*log( (x[2,1]*n)/(mr[2]*mc[1]) ) +
+       x[2,2]*log( (x[2,2]*n)/(mr[2]*mc[2]) ) +
+       x[2,3]*log( (x[2,3]*n)/(mr[2]*mc[3]) ) +
+       x[3,1]*log( (x[3,1]*n)/(mr[3]*mc[1]) ) +
+       x[3,2]*log( (x[3,2]*n)/(mr[3]*mc[2]) ) +
+       x[3,3]*log( (x[3,3]*n)/(mr[3]*mc[3]) )
+       )
+p2<-1-pchisq(lrt,4)
+message('LRT statistics: ', lrt)
+message('p-value: ', p2)
+
+prob <- 0.95
+# interpret p-value
+alpha = 1.0 - prob
+
+
+if(p2 <= alpha)
+{
+    print("Dependent: Null hypothesis is rejected")  # Statement
+}else{
+    print("Independent (fail to reject H0")
+}
+```
+
+```{r echo=FALSE}
+E  = matrix(c(
+    mr[1]*mc[1],mr[2]*mc[1],mr[3]*mc[1],
+    mr[1]*mc[2],mr[2]*mc[2],mr[3]*mc[2],
+    mr[1]*mc[3],mr[2]*mc[3],mr[3]*mc[3]),3,3)/n
+U <- sum((x-E)^2/E)
+p <- round(1-pchisq(U,4),9)
+message('U statistic: ', U)
+
+message('p-value ', p)
+prob <- 0.95
+# interpret p-value
+alpha = 1.0 - prob
+
+
+if(p <= alpha)
+{
+    print("Dependent: Null hypothesis is rejected")  # Statement
+}else{
+    print("Independent (fail to reject H0")
+}
+```
+**Likelihood ratio test and Pearson *X*^2^ test show that age and financial status are dependent.**
+
+# Exercise 15.6.6:
+
+## Estimate the correlation between temperature and latitude.
+## Use the correlation coefficient. Provide estimates, tests, and confidence intervals
+
+In our case both variables - tempreture and latitude - are continuous variables.
+
+```{r include=FALSE}
+temp_table <- read.csv("Data/Temp.csv",
+                           stringsAsFactors = FALSE)
+
+
+```
+
+
+```{r echo=FALSE}
+
+d <-density(temp_table$JanTemp)
+plot(d, main="Density of January Tempreture")
+
+
+```
+```{r echo=FALSE}
+shapiro.test(temp_table$JanTemp)
+```
+From the output of Shapiro-Wilk normality test on January temperature we see that, the p-value > 0.05 implying that the distribution of the data are not significantly different from normal distribution. In other words, we can assume the normality.
+
+```{r echo=FALSE}
+d <-density(temp_table$Lat)
+plot(d, main="Density of Latitude")
+```
+
+```{r echo=FALSE}
+shapiro.test(temp_table$Lat)
+```
+
+From the output of Shapiro-Wilk normality test we can see that, the p-value > 0.05 implying that the distribution of the data are not significantly different from normal distribution. In other words, we can assume the normality.
+
+In this case we can apply correlation test to check if variables are dependent.
+
+```{r echo=FALSE}
+plot(x=temp_table$JanTemp, y=temp_table$Lat, xlab="January Tempreture",
+        ylab="Latitude")
+```
+```{r echo=FALSE}
+x=temp_table$JanTemp
+y=temp_table$Lat
+
+cor.test(x, y, method=c("pearson"))
+```
+
+**From the Pearson's correlation test we can conclude that variables are dependent.**
+
+
+# Exercise 15.6.7:
+
+## Test whether calcium intake and drop in blood pressure are associated. 
+
+I would like to know if calcium intake and drop in blood pressure are associated. As Calcium intake is discrete and blood pressure changes is continuous variable, I need to test hypothesis:
+
+**H0:** F1 = ...=Fn 
+
+**H1:** not H0, 
+
+where F1, ... Fn are Fi(z)=P(Z<=z|Y=i) (Fi is CDF of Z (blood pressure changes) and Y is (Calcium intake)
+
+```{r echo=FALSE}
+treatment_table <- read.csv("Data/Calcium.csv",
+                           stringsAsFactors = FALSE)
+require(plyr)
+treatment_table$treatment <- mapvalues(treatment_table[,c(1)], 
+          from=c("Calcium","Placebo"), 
+          to=c("1","0"))
+
+```
+To do that I will use the two sample Kolmogorov-Smirnov test:
+```{r echo=FALSE}
+F1 = treatment_table[treatment_table$treatment=="1",]
+F0 = treatment_table[treatment_table$treatment=="0",]
+
+x = F1$Decrease
+y = F0$Decrease
+
+ks.test(x, y)
+```
+Since the p-value is grater than .05, we do not reject the null hypothesis
+```{r}
+a=c(1:length(x))
+b=c(1:length(y))
+ 
+# Make a basic graph
+plot( sort(x)~a , type="b" , bty="l" ,  ylab="Decreace in blood pressure" , col=rgb(0.2,0.4,0.1,0.7) , lwd=3 , pch=17  )
+lines(sort(y) ~b , col=rgb(0.8,0.4,0.1,0.7) , lwd=3 , pch=19 , type="b" )
+
+legend("bottomleft", 
+  legend = c("Calcium", "Placebo"), 
+  col = c(rgb(0.2,0.4,0.1,0.7), 
+  rgb(0.8,0.4,0.1,0.7)), 
+  pch = c(17,19), 
+  bty = "n", 
+  pt.cex = 2, 
+  cex = 1.2, 
+  text.col = "black", 
+  horiz = F , 
+  inset = c(0.1, 0.1))
+```
+```{r}
+plot(density(x))
+```
+```{r}
+plot(density(y))
 ```
 
 
